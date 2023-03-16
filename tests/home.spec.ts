@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import moment from "moment";
-import { SuperflyPage } from "./superfly.spec";
+import { SuperflyPage } from "./superfly";
+import { SearchPage } from "./search-page";
 
 let superfly: SuperflyPage;
 
@@ -36,7 +37,9 @@ test.describe("Superfly Navigation", async () => {
   });
 
   test("superfly logo", async () => {
-    await expect(await superfly.getSuperflyLogoSrc()).toBe("/images/logo_black.png");
+    await expect(await superfly.getSuperflyLogoSrc()).toBe(
+      "/images/logo_black.png"
+    );
   });
 
   test("Clicking Facebook icon should open Superfly Facebook page", async () => {
@@ -60,33 +63,23 @@ test.describe("Search for flights", async () => {
     await superfly.goto();
   });
 
-  test("Search for flights", async ({ page }) => {
+  test.only("Search for flights", async ({ page }) => {
     test.setTimeout(30000);
 
-    await page.getByRole("combobox").first().selectOption("Harare Domestic");
-    await page.getByRole("combobox").nth(1).selectOption("Chikwenya");
-    await page.getByText("1 Adult").click();
-    await page
-      .getByRole("tooltip", { name: "Adults 1 Children 0-12 years 0" })
-      .getByRole("button")
-      .nth(1)
-      .click();
+    const searchPage = new SearchPage(page);
+
+    await searchPage.selectDepartureAirport("Harare Domestic");
+    await searchPage.selectDestinationAirport("Chikwenya");
+    await searchPage.selectPassengers();
 
     const departDate = moment(new Date())
       .add(1, "day")
       .format("dddd, MMMM Do, YYYY");
-
     const returnDate = moment().add(1, "month").format("dddd, MMMM Do, YYYY");
 
-    await page.locator("span").filter({ hasText: "Depart" }).click();
-
-    await page.getByRole("option", { name: `Choose ${departDate}` }).click();
-
-    await page.getByRole("button", { name: "Next Month" }).click();
-
-    await page.getByRole("option", { name: `Choose ${returnDate}` }).click();
-
-    await page.getByRole("button", { name: "Search" }).click();
+    await searchPage.selectDepartureDate(departDate);
+    await searchPage.selectReturnDate(returnDate);
+    await searchPage.clickSearchButton();
 
     await expect(page).toHaveURL("https://superfly.aero/search");
   });
